@@ -1,7 +1,6 @@
 import streamlit as st
-import cv2
 import numpy as np
-from PIL import Image, ImageEnhance
+from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 
 def apply_contrast(image, level):
     enhancer = ImageEnhance.Contrast(image)
@@ -10,6 +9,17 @@ def apply_contrast(image, level):
 def apply_brightness(image, level):
     enhancer = ImageEnhance.Brightness(image)
     return enhancer.enhance(level)
+
+def apply_grayscale(image):
+    return ImageOps.grayscale(image)
+
+def apply_edge_detection(image):
+    image = ImageOps.grayscale(image)
+    image = image.filter(ImageFilter.FIND_EDGES)
+    return image
+
+def apply_blur(image, radius):
+    return image.filter(ImageFilter.GaussianBlur(radius))
 
 def main():
     st.title("Análisis de Imágenes de Modelos 3D")
@@ -29,20 +39,16 @@ def main():
         processed_img = None
 
         if option == "Escala de Grises":
-            gray_image = cv2.cvtColor(img_array, cv2.COLOR_BGR2GRAY)
-            processed_img = gray_image
+            processed_img = apply_grayscale(image)
             st.image(processed_img, caption='Imagen en Escala de Grises', use_column_width=True)
 
         elif option == "Detección de Bordes":
-            gray_image = cv2.cvtColor(img_array, cv2.COLOR_BGR2GRAY)
-            edges = cv2.Canny(gray_image, 100, 200)
-            processed_img = edges
+            processed_img = apply_edge_detection(image)
             st.image(processed_img, caption='Bordes Detectados', use_column_width=True)
 
         elif option == "Filtro de Desenfoque":
             blur_radius = st.slider("Elige el radio de desenfoque:", 1, 10, 5)
-            blurred_image = cv2.GaussianBlur(img_array, (blur_radius * 2 + 1, blur_radius * 2 + 1), 0)
-            processed_img = blurred_image
+            processed_img = apply_blur(image, blur_radius)
             st.image(processed_img, caption='Imagen Desenfocada', use_column_width=True)
 
         elif option == "Ajuste de Brillo y Contraste":
@@ -50,13 +56,12 @@ def main():
             contrast = st.slider("Ajuste de Contraste", 0.5, 3.0, 1.0)
             bright_img = apply_brightness(image, brightness)
             contrast_img = apply_contrast(bright_img, contrast)
-            processed_img = np.array(contrast_img)
+            processed_img = contrast_img
             st.image(processed_img, caption='Brillo y Contraste Ajustados', use_column_width=True)
 
         if processed_img is not None:
             if st.button('Guardar Imagen Procesada'):
-                save_image = Image.fromarray(processed_img)
-                save_image.save("processed_image.png")
+                processed_img.save("processed_image.png")
                 st.write("Imagen guardada como `processed_image.png`")
 
 if __name__ == "__main__":
